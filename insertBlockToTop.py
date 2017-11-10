@@ -6,6 +6,8 @@ import rhinoscriptsyntax as rs
 #pick an object
 objects = rs.GetObjects("Select components", rs.filter.instance)
 
+Xmax  = 0;
+
 #Loop between my objects
 for id in objects:
     name = rs.ObjectName(id)
@@ -27,7 +29,17 @@ for id in objects:
     print "remapped"
 
     # move of block so that the insert point is at origin
-    rs.MoveObject(NewId, Rhino.Geometry.Point3d(0, 0, 0) - rs.BlockInstanceInsertPoint(NewId))
+    box = rs.BoundingBox(NewId)
+    rs.MoveObject(NewId, Rhino.Geometry.Point3d(Xmax + 10, 0, 0) - box[0])
 
     # move block to the "stock" layer
     rs.ObjectLayer(NewId, "stock")
+
+    box = rs.BoundingBox(NewId)
+    if box:
+        for i, point in enumerate(box):
+            print "i=", i, point[0]
+            if Xmax < point[0]:
+                Xmax = point[0]
+
+print "Xmax = ", Xmax
