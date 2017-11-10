@@ -22,7 +22,7 @@ for id in objects:
     initial_plane = rs.ViewCPlane(cplane)
     final_plane = rs.ViewCPlane("Top")
     xform = rs.XformRotation1(initial_plane, final_plane)
-    NewId = rs.TransformObjects(objects, xform, True)
+    NewId = rs.TransformObjects(id, xform, True)
     rs.SetUserText(NewId, "cplane", "Top")
     print "remapped"
 
