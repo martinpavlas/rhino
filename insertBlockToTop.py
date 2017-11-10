@@ -1,10 +1,11 @@
 import Rhino
 import rhinoscriptsyntax as rs
 
-
+# set active layer to "stock", ie. layer where the nesting will take place
+rs.CurrentLayer("stock")
 
 #pick an object
-objects = rs.GetObjects("Select components", rs.filter.instance)
+objects = rs.GetObjects("Select components", rs.filter.instance, True, True)
 
 Xmax  = 0;
 
@@ -12,6 +13,9 @@ Xmax  = 0;
 for id in objects:
     name = rs.ObjectName(id)
     print "component:", name
+
+    # prevent inserting a block that is already in stock layer
+    # in future possibly update such block
 
     # determine plane where the block is constructed
     cplane = rs.GetUserText(id, "cplane")
@@ -28,18 +32,30 @@ for id in objects:
     rs.SetUserText(NewId, "cplane", "Top")
     print "remapped"
 
-    # move of block so that the insert point is at origin
+    # move of block so that the insert point is at max X of previous
+    # object plus 10 units
     box = rs.BoundingBox(NewId)
     rs.MoveObject(NewId, Rhino.Geometry.Point3d(Xmax + 10, 0, 0) - box[0])
 
     # move block to the "stock" layer
     rs.ObjectLayer(NewId, "stock")
 
+    # place the label with an object name onto the nesting block
+    labelX = (box[1][0] - box[0][0]) / 2
+    labelY = (box[2][1] - box[0][1]) / 2
+    print "XXX>", labelX, labelY
+    TextId = rs.AddTextDot(name, (Xmax + labelX + 10, labelY, 0))
+    rs.ObjectName(TextId, name)
+
+    # make a group of the block and the label
+    groupId = rs.AddGroup()
+    rs.AddObjectsToGroup((NewId, TextId), groupId)
+
+    # find out the maximum X of the newly created and moved block
     box = rs.BoundingBox(NewId)
     if box:
         for i, point in enumerate(box):
-            print "i=", i, point[0]
             if Xmax < point[0]:
                 Xmax = point[0]
 
-print "Xmax = ", Xmax
+    print "Xmax = ", Xmax
