@@ -8,6 +8,33 @@
 import Rhino
 import rhinoscriptsyntax as rs
 
+#
+# place_label (object)
+#
+# adds a label with a block name to the center of the block on the Front cplane
+#
+def place_label (id):
+
+    # determine component name and bouding box
+    object_name = rs.ObjectName(id)
+    bbox = rs.BoundingBox(id)
+
+    # calculate center of the parts bounding box
+    x = (bbox[1][0] - bbox[0][0]) / 2
+    y = (bbox[2][1] - bbox[0][1]) / 2
+    print "XXX>", x, y
+    text_id = rs.AddTextDot(object_name, (Xmax + x + 10, y, 0))
+    rs.ObjectName(text_id, object_name)
+
+    # make a group of the block and the label
+    group_id = rs.AddGroup()
+    rs.AddObjectsToGroup((id, text_id), group_id)
+
+    return
+
+
+
+
 # set active layer to "stock", ie. layer where the nesting will take place
 rs.CurrentLayer("labels")
 
@@ -47,16 +74,8 @@ for id in objects:
     # move block to the "stock" layer
     rs.ObjectLayer(NewId, "stock")
 
-    # place the label with an object name onto the nesting block
-    labelX = (box[1][0] - box[0][0]) / 2
-    labelY = (box[2][1] - box[0][1]) / 2
-    print "XXX>", labelX, labelY
-    TextId = rs.AddTextDot(name, (Xmax + labelX + 10, labelY, 0))
-    rs.ObjectName(TextId, name)
-
-    # make a group of the block and the label
-    groupId = rs.AddGroup()
-    rs.AddObjectsToGroup((NewId, TextId), groupId)
+    # place a label with a block name on the the milling part
+    place_label(NewId)
 
     # find out the maximum X of the newly created and moved block
     box = rs.BoundingBox(NewId)
