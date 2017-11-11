@@ -1,3 +1,10 @@
+#
+# insert block to the top view
+#
+# A piece of code to practice cloning of blocks to the "stock" ObjectLayer
+# so that it is Top cplane, ready for export to 2D DXF for CAM processing
+# The script required .3DM file with "stock" and "stock.labels" layers
+
 import Rhino
 import rhinoscriptsyntax as rs
 
