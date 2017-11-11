@@ -2,7 +2,7 @@ import Rhino
 import rhinoscriptsyntax as rs
 
 # set active layer to "stock", ie. layer where the nesting will take place
-rs.CurrentLayer("stock")
+rs.CurrentLayer("labels")
 
 #pick an object
 objects = rs.GetObjects("Select components", rs.filter.instance, True, True)
