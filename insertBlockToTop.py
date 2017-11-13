@@ -52,6 +52,8 @@ class Part(object):
         print "size_x = ", self.size_x, " size_y = ", self.size_y
         print "x = ", self.x, " y = ", self.y
 
+        rs.AddRectangle(final_plane, self.size_x, self.size_y)
+
         self.id = part_id
 
 
@@ -123,4 +125,24 @@ for id in objects:
 
     print "Xmax = ", panel.Xmax
 
-rs.EnableRedraw(True)
+    rs.EnableRedraw(True)
+    area_min = 99999999999999
+    remember = 0
+
+    tmp_id = rs.CopyObject(part.id)
+
+    for i in range(0, 91, 10):
+        rs.RotateObject(tmp_id, [267.00, 97.38, 0], i, [0, 0, 1], False)
+        bbox = rs.BoundingBox(tmp_id)
+        sx = bbox[1][0] - bbox[0][0]
+        sy = bbox[2][1] - bbox[1][1]
+
+        area = ((sx * sy) / 1000)
+
+        if area_min > area:
+            area_min = area
+            remember = i
+            print "XXXX"
+
+        print "i = ", i, " area = ", area
+    print "best fit at ", remember
