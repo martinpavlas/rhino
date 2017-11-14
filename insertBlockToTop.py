@@ -46,9 +46,6 @@ class Part(object):
         self.x = bbox[0][0]
         self.y = bbox[0][1]
 
-        print "size_x = ", self.size_x, " size_y = ", self.size_y
-        print "x = ", self.x, " y = ", self.y
-
 
     def place_label (self):
 
@@ -68,10 +65,10 @@ class Part(object):
         group_id = rs.AddGroup()
         rs.AddObjectsToGroup((self.id, text_id), group_id)
 
-        return
 
-
-
+#
+# Main
+#
 Xmax = 0;
 
 # define a stock to place parts on
@@ -85,21 +82,14 @@ rs.EnableRedraw(False)
 #Loop between my objects
 for id in objects:
     name = rs.ObjectName(id)
-    print "component:", name
+
 
     # move block to the top plane and update its plane property
     part = Part(id)
 
-    # placement should happen here
+    # calculate position for next part
+    Xmax = part.x + part.size_x
 
-    # find out the maximum X of the newly created and moved block
-    bbox = rs.BoundingBox(part.id)
-    if bbox:
-        for i, point in enumerate(bbox):
-            if Xmax < point[0]:
-                Xmax = point[0]
-            print "X = ", point[0]
+    print "part: ", name, " @ X = ", part.x
 
-    print "Xmax = ", Xmax
-
-    rs.EnableRedraw(True)
+rs.EnableRedraw(True)
