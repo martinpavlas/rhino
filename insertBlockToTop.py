@@ -19,15 +19,15 @@ class Stock(object):
 class Part(object):
     """A part to be placed on the stock for nesting and cutting purposes"""
 
-    def __init__(self, id, cplane):
+    def __init__(self, id):
         super(Part, self).__init__()
 
         # rotate and copy to the Top plane
-        initial_plane = rs.ViewCPlane(cplane)
+        bbox = rs.BoundingBox(id)
+        initial_plane = rs.PlaneFitFromPoints(bbox)
         final_plane = rs.ViewCPlane("Top")
         xform = rs.XformRotation1(initial_plane, final_plane)
         self.id = rs.TransformObjects(id, xform, True)
-        rs.SetUserText(self.id, "cplane", "Top")
 
         # place part to the "stock" layer
         rs.ObjectLayer(self.id, "stock")
@@ -70,14 +70,6 @@ class Part(object):
 
         return
 
-def determine_cplane (id):
-
-    cplane = rs.GetUserText(id, "cplane")
-    if not cplane:
-        cplane = "Front"
-        rs.SetUserText(id, "cplane", cplane)
-
-    return
 
 
 Xmax = 0;
@@ -95,11 +87,8 @@ for id in objects:
     name = rs.ObjectName(id)
     print "component:", name
 
-    # determine plane where the block is constructed
-    cplane = determine_cplane(id)
-
     # move block to the top plane and update its plane property
-    part = Part(id, cplane)
+    part = Part(id)
 
     # placement should happen here
 
