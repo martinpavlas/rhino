@@ -11,12 +11,9 @@ import rhinoscriptsyntax as rs
 class Stock(object):
     """An stock of material that will be used for milling components"""
 
-    Xmax  = 0;
-
     def __init__(self, layer):
         super (Stock, self).__init__()
         self.layer = layer
-
 
 
 class Part(object):
@@ -37,7 +34,7 @@ class Part(object):
 
         # mode part to the Origin
         bbox = rs.BoundingBox(part_id)
-        rs.MoveObject(part_id, Rhino.Geometry.Point3d(0, 0, 0) - bbox[0])
+        rs.MoveObject(part_id, Rhino.Geometry.Point3d(Xmax, 0, 0) - bbox[0])
 
         # place a label with a block name on the part
         place_label(part_id)
@@ -51,8 +48,6 @@ class Part(object):
 
         print "size_x = ", self.size_x, " size_y = ", self.size_y
         print "x = ", self.x, " y = ", self.y
-
-        rs.AddRectangle(final_plane, self.size_x, self.size_y)
 
         self.id = part_id
 
@@ -71,8 +66,8 @@ def place_label (id):
     bbox = rs.BoundingBox(id)
 
     # calculate center of the parts bounding box
-    x = (bbox[1][0] - bbox[0][0]) / 2
-    y = (bbox[2][1] - bbox[0][1]) / 2
+    x = bbox[0][0] + (bbox[1][0] - bbox[0][0]) / 2
+    y = bbox[0][1] + (bbox[2][1] - bbox[0][1]) / 2
 
     text_id = rs.AddTextDot(object_name, (x, y, 0))
     rs.ObjectName(text_id, object_name)
@@ -93,6 +88,8 @@ def determine_cplane (id):
 
     return
 
+
+Xmax = 0;
 
 # define a stock to place parts on
 panel = Stock("stock")
@@ -119,30 +116,10 @@ for id in objects:
     bbox = rs.BoundingBox(part.id)
     if bbox:
         for i, point in enumerate(bbox):
-            if panel.Xmax < point[0]:
-                panel.Xmax = point[0]
+            if Xmax < point[0]:
+                Xmax = point[0]
             print "X = ", point[0]
 
-    print "Xmax = ", panel.Xmax
+    print "Xmax = ", Xmax
 
     rs.EnableRedraw(True)
-    area_min = 99999999999999
-    remember = 0
-
-    tmp_id = rs.CopyObject(part.id)
-
-    for i in range(0, 91, 10):
-        rs.RotateObject(tmp_id, [267.00, 97.38, 0], i, [0, 0, 1], False)
-        bbox = rs.BoundingBox(tmp_id)
-        sx = bbox[1][0] - bbox[0][0]
-        sy = bbox[2][1] - bbox[1][1]
-
-        area = ((sx * sy) / 1000)
-
-        if area_min > area:
-            area_min = area
-            remember = i
-            print "XXXX"
-
-        print "i = ", i, " area = ", area
-    print "best fit at ", remember
