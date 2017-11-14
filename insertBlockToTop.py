@@ -26,21 +26,21 @@ class Part(object):
         initial_plane = rs.ViewCPlane(cplane)
         final_plane = rs.ViewCPlane("Top")
         xform = rs.XformRotation1(initial_plane, final_plane)
-        part_id = rs.TransformObjects(id, xform, True)
-        rs.SetUserText(part_id, "cplane", "Top")
+        self.id = rs.TransformObjects(id, xform, True)
+        rs.SetUserText(self.id, "cplane", "Top")
 
         # place part to the "stock" layer
-        rs.ObjectLayer(part_id, "stock")
+        rs.ObjectLayer(self.id, "stock")
 
         # mode part to the Origin
-        bbox = rs.BoundingBox(part_id)
-        rs.MoveObject(part_id, Rhino.Geometry.Point3d(Xmax, 0, 0) - bbox[0])
+        bbox = rs.BoundingBox(self.id)
+        rs.MoveObject(self.id, Rhino.Geometry.Point3d(Xmax, 0, 0) - bbox[0])
 
         # place a label with a block name on the part
-        place_label(part_id)
+        self.place_label()
 
         # determine size and location
-        bbox = rs.BoundingBox(part_id)
+        bbox = rs.BoundingBox(self.id)
         self.size_x = bbox[1][0] - bbox[0][0]
         self.size_y = bbox[2][1] - bbox[0][1]
         self.x = bbox[0][0]
@@ -49,35 +49,26 @@ class Part(object):
         print "size_x = ", self.size_x, " size_y = ", self.size_y
         print "x = ", self.x, " y = ", self.y
 
-        self.id = part_id
 
+    def place_label (self):
 
+        # determine component name and bouding box
+        object_name = rs.ObjectName(self.id)
+        bbox = rs.BoundingBox(self.id)
 
-#
-# place_label (object)
-#
-# adds a label with a component name to the center of the block
-# on the Front cplane
-#
-def place_label (id):
+        # calculate center of the parts bounding box
+        x = bbox[0][0] + (bbox[1][0] - bbox[0][0]) / 2
+        y = bbox[0][1] + (bbox[2][1] - bbox[0][1]) / 2
 
-    # determine component name and bouding box
-    object_name = rs.ObjectName(id)
-    bbox = rs.BoundingBox(id)
+        text_id = rs.AddTextDot(object_name, (x, y, 0))
+        rs.ObjectName(text_id, object_name)
+        rs.ObjectLayer(text_id, "labels")
 
-    # calculate center of the parts bounding box
-    x = bbox[0][0] + (bbox[1][0] - bbox[0][0]) / 2
-    y = bbox[0][1] + (bbox[2][1] - bbox[0][1]) / 2
+        # make a group of the block and the label
+        group_id = rs.AddGroup()
+        rs.AddObjectsToGroup((self.id, text_id), group_id)
 
-    text_id = rs.AddTextDot(object_name, (x, y, 0))
-    rs.ObjectName(text_id, object_name)
-    rs.ObjectLayer(text_id, "labels")
-
-    # make a group of the block and the label
-    group_id = rs.AddGroup()
-    rs.AddObjectsToGroup((id, text_id), group_id)
-
-    return
+        return
 
 def determine_cplane (id):
 
