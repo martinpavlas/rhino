@@ -1,42 +1,35 @@
 import Rhino
 import rhinoscriptsyntax as rs
 import scriptcontext
-import os
-
-
-filename = (rs.DocumentName().split("."))[0] + ".gcode"
-
-print "Generating gcode:", filename
 
 
 def getSegmentId(id):
-    return rs.ObjectName(id)
+    return int(rs.ObjectName(id))
 
 
-def translateToGcode(f, id):
-    curveDegree = rs.CurveDegree(id)
+def translateToGcode(id):
 
-    print "curve degree:", curveDegree
+    path = rs.ConvertCurveToPolyline(id)
+    points = rs.CurvePoints(path)
+    rs.DeleteObject(path)
 
-    if curveDegree == 1:
-        points = rs.CurvePoints(id)
-
-        for pointId in points:
-            print >>f, "G1 X%.3f" % pointId.X, "Y%.3f" % pointId.Y, "Z%.3f" % pointId.Z, "F1200"
-
-    else:
-        polyline = rs.ConvertCurveToPolyline(id)
-        translateToGcode(f, polyline)
+    for pointId in points:
+        print >>f, "G1 X%.3f" % pointId.X, "Y%.3f" % pointId.Y, "Z%.3f" % pointId.Z, "F1200"
 
 
-def listToolpathSegments():
+def generateToolpath():
     objects = scriptcontext.doc.Objects.FindByLayer("toolpaths")
     if not objects: Rhino.Commands.Result.Cancel
 
     sortedSegments = sorted(objects, key=getSegmentId)
 
-    f = open(filename, 'w')
+    #Loop between my objects
+    for id in sortedSegments:
+        print "Segment:", getSegmentId(id)
+        translateToGcode(id)
 
+
+def insertHeader():
     print >>f, """
 ( File generated with cncproc     )
 ( format for CNC-STEP controllers )
@@ -49,19 +42,21 @@ T1 M6 (change tool)
 S16000 M3 (start spindle at full speed)
 """
 
-    #Loop between my objects
-    for id in sortedSegments:
 
-        if (rs.IsLine(id)):
-            translateToGcode(f, id)
-        else:
-            for id in rs.ExplodeCurves(id):
-                translateToGcode(f, id)
-                rs.DeleteObject(id)
-
-
+def insertSafetyStop():
     print >>f, "\nM5 (stop spindle)"
-    f.close();
+
+
 
 if __name__=="__main__":
-    listToolpathSegments()
+
+    filename = (rs.DocumentName().split("."))[0] + ".gcode"
+    print "Generating gcode:", filename
+
+    f = open(filename, 'w')
+
+    insertHeader()
+    generateToolpath()
+    insertSafetyStop()
+
+    f.close()
