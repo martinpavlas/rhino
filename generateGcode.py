@@ -7,7 +7,6 @@ def getSegmentId(id):
     return int(rs.GetUserText(id, "SegmentId"))
 
 
-
 def translateToGcode(id):
 
     path = rs.ConvertCurveToPolyline(id)
@@ -18,9 +17,12 @@ def translateToGcode(id):
         print >>f, "G1 X%.3f" % pointId.X, "Y%.3f" % pointId.Y, "Z%.3f" % pointId.Z, "F1200"
 
 
-def generateToolpath():
-    objects = scriptcontext.doc.Objects.FindByLayer("toolpaths")
-    if not objects: Rhino.Commands.Result.Cancel
+def generateToolpath(toolpath):
+#    objects = scriptcontext.doc.Objects.FindByLayer(toolpath)
+    objects = rs.ObjectsByLayer(toolpath, False)
+    if not objects:
+        print "No objects found"
+        return
 
     sortedSegments = sorted(objects, key=getSegmentId)
 
@@ -57,7 +59,14 @@ if __name__=="__main__":
     f = open(filename, 'w')
 
     insertHeader()
-    generateToolpath()
+
+    toolpaths = rs.LayerChildren("Toolpaths")
+
+    for toolpath in toolpaths:
+        print toolpath
+        generateToolpath(toolpath)
+
+
     insertSafetyStop()
 
     f.close()

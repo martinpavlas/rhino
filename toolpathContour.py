@@ -45,7 +45,6 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
         else :
             point = rs.XformCPlaneToWorld([10000,10000,0], plane)
 
-        rs.CurrentLayer("toolpaths")
 
         tempCurve = rs.OffsetCurve(id, point, toolDiameter / 2.0, plane.ZAxis)
         #rs.ObjectLayer(tempCurve, "gcode")
@@ -103,4 +102,8 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
 
 if __name__=="__main__":
     objects, mode, totalDepth, passDepth, toolDiameter = getToolpathParameters()
+    nrOfPaths = rs.LayerChildCount("Toolpaths")
+    pathLayerName = "path%03d" % nrOfPaths
+    rs.AddLayer(name="Toolpaths::" + pathLayerName, color=[255, 0, 0])
+    rs.CurrentLayer(pathLayerName)
     prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter)
