@@ -69,7 +69,8 @@ class Part(object):
 #
 # Main
 #
-Xmax = 0;
+Xmax = float(rs.GetDocumentData("Nest", "Xmax"))
+Xmax = 0
 
 # define a stock to place parts on
 panel = Stock("stock")
@@ -89,6 +90,7 @@ for id in objects:
 
     # calculate position for next part
     Xmax = part.x + part.size_x
+    rs.SetDocumentData( "Nest", "Xmax", str(Xmax))
 
     print "part: ", name, " @ X = ", part.x
 
