@@ -2,6 +2,11 @@ import Rhino
 import rhinoscriptsyntax as rs
 
 
+def setSegmentId(objId, segmentId):
+        rs.SetUserText(objId, "SegmentId", str(segmentId))
+        rs.ObjectName(objId, segmentId)
+
+
 def getToolpathParameters():
 
     # get curves to generate the toolpaths for
@@ -49,10 +54,10 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
 
 
         objId = rs.AddLine(startPoint, [passPoint.X, passPoint.Y, 5])
-        rs.ObjectName(objId, 0)
+        setSegmentId(objId, 0)
 
         objId = rs.AddLine([passPoint.X, passPoint.Y, 5], [passPoint.X, passPoint.Y, 0])
-        rs.ObjectName(objId, 1)
+        setSegmentId(objId, 1)
 
 
         lastPass = False
@@ -70,14 +75,14 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
                 lastPass = True
 
             objId = rs.AddLine([passPoint.X, passPoint.Y, -prevDepth], [passPoint.X, passPoint.Y, -depth])
-            rs.ObjectName(objId, pathSegmentNr)
+            setSegmentId(objId, pathSegmentNr)
             pathSegmentNr = pathSegmentNr + 1
             prevDepth = depth
 
             # add the toolpath and move it to current depth
             toolpathCurve = rs.CopyObject(tempCurve)
             rs.MoveObject(toolpathCurve, [0, 0, -depth])
-            rs.ObjectName(toolpathCurve, pathSegmentNr)
+            setSegmentId(toolpathCurve, pathSegmentNr)
 
             passNr = passNr + 1
             pathSegmentNr = pathSegmentNr + 1
@@ -87,8 +92,8 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
 
 
         # add the exit move
-        objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], [passPoint.X, passPoint.Y, 20])
-        rs.ObjectName(objId, pathSegmentNr)
+        objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], [passPoint.X, passPoint.Y, 5])
+        setSegmentId(objId, pathSegmentNr)
 
 
         # remove the helper curve

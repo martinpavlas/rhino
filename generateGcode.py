@@ -4,7 +4,8 @@ import scriptcontext
 
 
 def getSegmentId(id):
-    return int(rs.ObjectName(id))
+    return int(rs.GetUserText(id, "SegmentId"))
+
 
 
 def translateToGcode(id):
