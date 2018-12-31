@@ -45,7 +45,10 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
 
         tempCurve = rs.OffsetCurve(id, point, toolDiameter / 2.0, plane.ZAxis)
-        #rs.ObjectLayer(tempCurve, "gcode")
+
+        if not tempCurve:
+            print "Tool cannot do this toolpath"
+            return False
 
         passPoint = rs.CurveStartPoint(tempCurve)
 
@@ -94,6 +97,8 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
         # remove the helper curve
         rs.DeleteObject(tempCurve)
 
+        return True
+
 
 def layerChangeEvent(sender, e):
     toolpaths = rs.LayerChildren("Toolpaths")
@@ -121,12 +126,37 @@ if __name__=="__main__":
         Rhino.RhinoDoc.LayerTableEvent -= func
         scriptcontext.sticky.Remove("MyLayerChangeEvent")
 
+    #
+    # create Toolpaths parent layer if not present
+    #
+    if not rs.IsLayer("Toolpaths"):
+        rs.AddLayer("Toolpaths")
+
+    #
+    # run form to collect data about the toolpath operation
+    #
     objects, mode, totalDepth, passDepth, toolDiameter = getToolpathParameters()
+
+    #
+    # add sublayer for the new toolpath
+    #
     nrOfPaths = rs.LayerChildCount("Toolpaths")
     pathLayerName = "path%03d" % nrOfPaths
     rs.AddLayer(name="Toolpaths::" + pathLayerName, color=[255, 0, 0])
     rs.CurrentLayer(pathLayerName)
-    prepareToolpaths(pathLayerName, objects, mode, totalDepth, passDepth, toolDiameter)
+
+    #
+    # generate the toolpath
+    #
+    rc = prepareToolpaths(pathLayerName, objects, mode, totalDepth, passDepth, toolDiameter)
+
+    #
+    # remove toolpath layer if the operation failed
+    #
+    if rc == False:
+        print "Removing layer"
+        rs.CurrentLayer("Toolpaths")
+        rs.DeleteLayer("Toolpaths::" + pathLayerName)
 
     #
     # enable Layer change event listener
