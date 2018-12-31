@@ -4,11 +4,15 @@ import scriptcontext
 
 
 def getSegmentId(id):
-    return int(rs.GetUserText(id, "SegmentId"))
+    segmentId = rs.GetUserText(id, "SegmentId")
+
+    if segmentId:
+      return int(segmentId)
+    else:
+      return
 
 
 def translateToGcode(id):
-
     path = rs.ConvertCurveToPolyline(id)
     points = rs.CurvePoints(path)
     rs.DeleteObject(path)
@@ -24,12 +28,14 @@ def generateToolpath(toolpath):
         print "No objects found"
         return
 
+    print >>f, "\n( toolpath: %s )\n" % toolpath
+
     sortedSegments = sorted(objects, key=getSegmentId)
 
     #Loop between my objects
     for id in sortedSegments:
-        print "Segment:", getSegmentId(id)
-        translateToGcode(id)
+        if getSegmentId(id):
+            translateToGcode(id)
 
 
 def insertHeader():

@@ -1,4 +1,5 @@
 import Rhino
+import scriptcontext
 import rhinoscriptsyntax as rs
 
 
@@ -31,10 +32,7 @@ def getToolpathParameters():
     return objects, mode, totalDepth, passDepth, toolDiameter
 
 
-def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
-
-    # this is the starting point for milling all contours
-    startPoint = [0, 0, 20]
+def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDiameter):
 
     for id in objects:
         plane = rs.CurvePlane(id)
@@ -51,12 +49,10 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
 
         passPoint = rs.CurveStartPoint(tempCurve)
 
-
-        objId = rs.AddLine(startPoint, [passPoint.X, passPoint.Y, 5])
-        setSegmentId(objId, 0)
-
         objId = rs.AddLine([passPoint.X, passPoint.Y, 5], [passPoint.X, passPoint.Y, 0])
         setSegmentId(objId, 1)
+        labelId = rs.AddTextDot(toolpathName, [passPoint.X, passPoint.Y, 5])
+        rs.SetUserText(labelId, "LayerId", rs.LayerId("Toolpaths::" + pathLayerName))
 
 
         lastPass = False
@@ -99,11 +95,42 @@ def prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter):
         rs.DeleteObject(tempCurve)
 
 
+def layerChangeEvent(sender, e):
+    toolpaths = rs.LayerChildren("Toolpaths")
+    layerId = "";
+
+    for toolpath in toolpaths:
+        layerId = rs.LayerId(toolpath)
+
+        for textDotId in rs.ObjectsByType(8192):
+            toolpathName = rs.TextDotText(textDotId)
+
+            if rs.GetUserText(textDotId, "LayerId") == layerId:
+                newToolpathName = toolpath.split("::")[1]
+                print "Renaming ", toolpathName, " to ", newToolpathName
+                rs.TextDotText(textDotId, newToolpathName)
+
 
 if __name__=="__main__":
+
+    #
+    # disable Layer change event listener
+    #
+    if scriptcontext.sticky.has_key("MyLayerChangeEvent"):
+        func = scriptcontext.sticky["MyLayerChangeEvent"]
+        Rhino.RhinoDoc.LayerTableEvent -= func
+        scriptcontext.sticky.Remove("MyLayerChangeEvent")
+
     objects, mode, totalDepth, passDepth, toolDiameter = getToolpathParameters()
     nrOfPaths = rs.LayerChildCount("Toolpaths")
     pathLayerName = "path%03d" % nrOfPaths
     rs.AddLayer(name="Toolpaths::" + pathLayerName, color=[255, 0, 0])
     rs.CurrentLayer(pathLayerName)
-    prepareToolpaths(objects, mode, totalDepth, passDepth, toolDiameter)
+    prepareToolpaths(pathLayerName, objects, mode, totalDepth, passDepth, toolDiameter)
+
+    #
+    # enable Layer change event listener
+    #
+    func = layerChangeEvent
+    scriptcontext.sticky["MyLayerChangeEvent"] = func
+    Rhino.RhinoDoc.LayerTableEvent += func
