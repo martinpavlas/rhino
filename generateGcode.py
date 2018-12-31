@@ -55,7 +55,8 @@ S16000 M3 (start spindle at full speed)
 def insertSafetyStop():
     print >>f, "\nM5 (stop spindle)"
 
-
+def getLayerOrder(layerName):
+    return rs.LayerOrder(layerName)
 
 if __name__=="__main__":
 
@@ -66,7 +67,7 @@ if __name__=="__main__":
 
     insertHeader()
 
-    toolpaths = rs.LayerChildren("Toolpaths")
+    toolpaths = sorted(rs.LayerChildren("Toolpaths"), key=getLayerOrder)
 
     for toolpath in toolpaths:
         print toolpath
