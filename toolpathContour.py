@@ -111,7 +111,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
         # remove the helper curve
         rs.DeleteObject(tempCurve)
 
-        return True
+    return True
 
 
 def layerChangeEvent(sender, e):
