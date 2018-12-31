@@ -22,7 +22,6 @@ def translateToGcode(id):
 
 
 def generateToolpath(toolpath):
-#    objects = scriptcontext.doc.Objects.FindByLayer(toolpath)
     objects = rs.ObjectsByLayer(toolpath, False)
     if not objects:
         print "No objects found"
@@ -55,8 +54,10 @@ S16000 M3 (start spindle at full speed)
 def insertSafetyStop():
     print >>f, "\nM5 (stop spindle)"
 
+
 def getLayerOrder(layerName):
     return rs.LayerOrder(layerName)
+
 
 if __name__=="__main__":
 
