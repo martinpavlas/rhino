@@ -6,6 +6,8 @@ import rhinoscriptsyntax as rs
 feedrateCutting = 1800
 feedratePlunge  = int(feedrateCutting / 3)
 feedrateRetract = feedrateCutting
+feedrateMove    = 6000
+safetyHeight    = 5
 
 
 
@@ -43,6 +45,9 @@ def getToolpathParameters():
 
 
 def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDiameter):
+    objectNr = 1
+    pathSegmentNr = 1
+    lastPoint = []
 
     for id in objects:
         plane = rs.CurvePlane(id)
@@ -62,16 +67,24 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
         passPoint = rs.CurveStartPoint(tempCurve)
 
-        objId = rs.AddLine([passPoint.X, passPoint.Y, 5], [passPoint.X, passPoint.Y, 0])
-        setSegmentId(objId, 1)
+        if objectNr > 1:
+            objId = rs.AddLine(lastPoint, [passPoint.X, passPoint.Y, safetyHeight])
+            setSegmentId(objId, pathSegmentNr)
+            pathSegmentNr = pathSegmentNr + 1
+            setFeedrate(objId, feedrateMove)
+
+        objId = rs.AddLine([passPoint.X, passPoint.Y, safetyHeight], [passPoint.X, passPoint.Y, 0])
+        setSegmentId(objId, pathSegmentNr)
+        pathSegmentNr = pathSegmentNr + 1
         setFeedrate(objId, feedratePlunge)
-        labelId = rs.AddTextDot(toolpathName, [passPoint.X, passPoint.Y, 5])
-        rs.SetUserText(labelId, "LayerId", rs.LayerId("Toolpaths::" + pathLayerName))
+
+        if objectNr == 1:
+            labelId = rs.AddTextDot(toolpathName, [passPoint.X, passPoint.Y, safetyHeight])
+            rs.SetUserText(labelId, "LayerId", rs.LayerId("Toolpaths::" + pathLayerName))
 
 
         lastPass = False
         passNr = 1
-        pathSegmentNr = 2
         prevDepth = 0
 
         while True:
@@ -103,13 +116,18 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
 
         # add the exit move
-        objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], [passPoint.X, passPoint.Y, 5])
+        lastPoint = [passPoint.X, passPoint.Y, safetyHeight]
+        objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], lastPoint)
         setSegmentId(objId, pathSegmentNr)
         setFeedrate(objId, feedrateRetract)
+        pathSegmentNr = pathSegmentNr + 1
+
 
 
         # remove the helper curve
         rs.DeleteObject(tempCurve)
+
+        objectNr = objectNr + 1
 
     return True
 
