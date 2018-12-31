@@ -3,9 +3,19 @@ import scriptcontext
 import rhinoscriptsyntax as rs
 
 
+feedrateCutting = 1800
+feedratePlunge  = int(feedrateCutting / 3)
+feedrateRetract = feedrateCutting
+
+
+
 def setSegmentId(objId, segmentId):
         rs.SetUserText(objId, "SegmentId", str(segmentId))
         rs.ObjectName(objId, segmentId)
+
+
+def setFeedrate(objId, feedrate):
+        rs.SetUserText(objId, "Feedrate", str(feedrate))
 
 
 def getToolpathParameters():
@@ -54,6 +64,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
         objId = rs.AddLine([passPoint.X, passPoint.Y, 5], [passPoint.X, passPoint.Y, 0])
         setSegmentId(objId, 1)
+        setFeedrate(objId, feedratePlunge)
         labelId = rs.AddTextDot(toolpathName, [passPoint.X, passPoint.Y, 5])
         rs.SetUserText(labelId, "LayerId", rs.LayerId("Toolpaths::" + pathLayerName))
 
@@ -74,6 +85,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
             objId = rs.AddLine([passPoint.X, passPoint.Y, -prevDepth], [passPoint.X, passPoint.Y, -depth])
             setSegmentId(objId, pathSegmentNr)
+            setFeedrate(objId, feedratePlunge)
             pathSegmentNr = pathSegmentNr + 1
             prevDepth = depth
 
@@ -81,6 +93,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
             toolpathCurve = rs.CopyObject(tempCurve)
             rs.MoveObject(toolpathCurve, [0, 0, -depth])
             setSegmentId(toolpathCurve, pathSegmentNr)
+            setFeedrate(toolpathCurve, feedrateCutting)
 
             passNr = passNr + 1
             pathSegmentNr = pathSegmentNr + 1
@@ -92,6 +105,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
         # add the exit move
         objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], [passPoint.X, passPoint.Y, 5])
         setSegmentId(objId, pathSegmentNr)
+        setFeedrate(objId, feedrateRetract)
 
 
         # remove the helper curve
