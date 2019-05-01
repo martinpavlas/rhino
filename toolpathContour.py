@@ -3,9 +3,21 @@ import scriptcontext
 import rhinoscriptsyntax as rs
 
 
+feedrateCutting = 1800
+feedratePlunge  = int(feedrateCutting / 3)
+feedrateRetract = feedrateCutting
+feedrateMove    = 6000
+safetyHeight    = 5
+
+
+
 def setSegmentId(objId, segmentId):
         rs.SetUserText(objId, "SegmentId", str(segmentId))
         rs.ObjectName(objId, segmentId)
+
+
+def setFeedrate(objId, feedrate):
+        rs.SetUserText(objId, "Feedrate", str(feedrate))
 
 
 def getToolpathParameters():
@@ -33,6 +45,9 @@ def getToolpathParameters():
 
 
 def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDiameter):
+    objectNr = 1
+    pathSegmentNr = 1
+    lastPoint = []
 
     for id in objects:
         plane = rs.CurvePlane(id)
@@ -45,19 +60,31 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
 
         tempCurve = rs.OffsetCurve(id, point, toolDiameter / 2.0, plane.ZAxis)
-        #rs.ObjectLayer(tempCurve, "gcode")
+
+        if not tempCurve:
+            print "Tool cannot do this toolpath"
+            return False
 
         passPoint = rs.CurveStartPoint(tempCurve)
 
-        objId = rs.AddLine([passPoint.X, passPoint.Y, 5], [passPoint.X, passPoint.Y, 0])
-        setSegmentId(objId, 1)
-        labelId = rs.AddTextDot(toolpathName, [passPoint.X, passPoint.Y, 5])
-        rs.SetUserText(labelId, "LayerId", rs.LayerId("Toolpaths::" + pathLayerName))
+        if objectNr > 1:
+            objId = rs.AddLine(lastPoint, [passPoint.X, passPoint.Y, safetyHeight])
+            setSegmentId(objId, pathSegmentNr)
+            pathSegmentNr = pathSegmentNr + 1
+            setFeedrate(objId, feedrateMove)
+
+        objId = rs.AddLine([passPoint.X, passPoint.Y, safetyHeight], [passPoint.X, passPoint.Y, 0])
+        setSegmentId(objId, pathSegmentNr)
+        pathSegmentNr = pathSegmentNr + 1
+        setFeedrate(objId, feedratePlunge)
+
+        if objectNr == 1:
+            labelId = rs.AddTextDot(toolpathName, [passPoint.X, passPoint.Y, safetyHeight])
+            rs.SetUserText(labelId, "LayerId", rs.LayerId("Toolpaths::" + pathLayerName))
 
 
         lastPass = False
         passNr = 1
-        pathSegmentNr = 2
         prevDepth = 0
 
         while True:
@@ -71,6 +98,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
             objId = rs.AddLine([passPoint.X, passPoint.Y, -prevDepth], [passPoint.X, passPoint.Y, -depth])
             setSegmentId(objId, pathSegmentNr)
+            setFeedrate(objId, feedratePlunge)
             pathSegmentNr = pathSegmentNr + 1
             prevDepth = depth
 
@@ -78,6 +106,7 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
             toolpathCurve = rs.CopyObject(tempCurve)
             rs.MoveObject(toolpathCurve, [0, 0, -depth])
             setSegmentId(toolpathCurve, pathSegmentNr)
+            setFeedrate(toolpathCurve, feedrateCutting)
 
             passNr = passNr + 1
             pathSegmentNr = pathSegmentNr + 1
@@ -87,12 +116,20 @@ def prepareToolpaths(toolpathName, objects, mode, totalDepth, passDepth, toolDia
 
 
         # add the exit move
-        objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], [passPoint.X, passPoint.Y, 5])
+        lastPoint = [passPoint.X, passPoint.Y, safetyHeight]
+        objId = rs.AddLine([passPoint.X, passPoint.Y, -depth], lastPoint)
         setSegmentId(objId, pathSegmentNr)
+        setFeedrate(objId, feedrateRetract)
+        pathSegmentNr = pathSegmentNr + 1
+
 
 
         # remove the helper curve
         rs.DeleteObject(tempCurve)
+
+        objectNr = objectNr + 1
+
+    return True
 
 
 def layerChangeEvent(sender, e):
@@ -121,12 +158,37 @@ if __name__=="__main__":
         Rhino.RhinoDoc.LayerTableEvent -= func
         scriptcontext.sticky.Remove("MyLayerChangeEvent")
 
+    #
+    # create Toolpaths parent layer if not present
+    #
+    if not rs.IsLayer("Toolpaths"):
+        rs.AddLayer("Toolpaths")
+
+    #
+    # run form to collect data about the toolpath operation
+    #
     objects, mode, totalDepth, passDepth, toolDiameter = getToolpathParameters()
+
+    #
+    # add sublayer for the new toolpath
+    #
     nrOfPaths = rs.LayerChildCount("Toolpaths")
     pathLayerName = "path%03d" % nrOfPaths
     rs.AddLayer(name="Toolpaths::" + pathLayerName, color=[255, 0, 0])
     rs.CurrentLayer(pathLayerName)
-    prepareToolpaths(pathLayerName, objects, mode, totalDepth, passDepth, toolDiameter)
+
+    #
+    # generate the toolpath
+    #
+    rc = prepareToolpaths(pathLayerName, objects, mode, totalDepth, passDepth, toolDiameter)
+
+    #
+    # remove toolpath layer if the operation failed
+    #
+    if rc == False:
+        print "Removing layer"
+        rs.CurrentLayer("Toolpaths")
+        rs.DeleteLayer("Toolpaths::" + pathLayerName)
 
     #
     # enable Layer change event listener
